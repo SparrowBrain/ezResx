@@ -53,14 +53,13 @@ namespace ezResx
                         continue;
                     }
 
-                    var file = withoutExtension.Split('.').First();
+                    var file = item.EvaluatedInclude;
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
                         var resourceKey = new ResourceKey
                         {
                             Project = projectPath,
-                            // TODO file should retain path within project
                             File = file,
                             Name = dataElement.Attribute("name").Value
                         };
@@ -91,14 +90,14 @@ namespace ezResx
                         continue;
                     }
 
-                    var file = withoutExtension.Split('.').First();
+                    var match = Regex.Match(item.EvaluatedInclude, @"([^\.]+)\.[^\.]+\.resx");
+                    var file = match.Groups[1].Value + ".resx";
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
                         var resourceKey = new ResourceKey
                         {
                             Project = projectPath,
-                            // TODO file should retain path within project
                             File = file,
                             Name = dataElement.Attribute("name").Value
                         };
