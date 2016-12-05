@@ -18,28 +18,12 @@ namespace ezResx
             //var solutionRegex = new Regex(@"Project.*\""([^""]+\.csproj)\"",.*EndProject", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
             var solutionPath = @"C:\Users\Qwx\Source\Repos\MachoKey\MachoKey.sln";
-            var solutionDirectory = Path.GetDirectoryName(solutionPath);
-            var solutionRegex = new Regex(@"\u0022([^\u0022]+\.csproj)\u0022");//, RegexOptions.Compiled | RegexOptions.CultureInvariant);
-            string solution;
-            using (var reader = new StreamReader(solutionPath))
-            {
-                solution = reader.ReadToEnd();
-                
-            }
-
-            var projects = new List<string>();
-            var matches = solutionRegex.Matches(solution);
-            foreach (Match match in matches)
-            {
-                var projectPath = match.Groups[1].Value;
-                projects.Add(projectPath);
-            }
+            var projects = GetSolutionProjects(solutionPath);
 
             var resourceList = new List<ResourceItem>();
             foreach (var projectPath in projects)
             {
-                var project = new Project(Path.Combine(solutionDirectory, projectPath));
-                        //@"C:\src\tfs\P2P Mobile Wallet\MobilePayLoyalty\DB.Mobeco.MobilePay.Loyalty.Infrastructure\DB.Mobeco.MobilePay.Loyalty.Infrastructure.csproj");
+                var project = new Project(projectPath.FullPath);
                         
                 var items = project.Items.Where(x => x.EvaluatedInclude.EndsWith(".resx"));
 
@@ -59,7 +43,7 @@ namespace ezResx
                     {
                         var resourceKey = new ResourceKey
                         {
-                            Project = projectPath,
+                            Project = projectPath.RelativeToSolution,
                             File = file,
                             Name = dataElement.Attribute("name").Value
                         };
@@ -97,7 +81,7 @@ namespace ezResx
                     {
                         var resourceKey = new ResourceKey
                         {
-                            Project = projectPath,
+                            Project = projectPath.RelativeToSolution,
                             File = file,
                             Name = dataElement.Attribute("name").Value
                         };
@@ -116,6 +100,8 @@ namespace ezResx
                             dataElement.Element("value").Value);
                     }
                 }
+
+                ProjectCollection.GlobalProjectCollection.UnloadProject(project);
             }
 
             // Export excel
@@ -130,10 +116,78 @@ namespace ezResx
             var solutionResources = resourceList;
             var xlsxResources = resources;
 
-            MergeResources(solutionResources, xlsxResources);
+            resources = MergeResources(solutionResources, xlsxResources);
+
+
+            // Import xlsx
+            projects = GetSolutionProjects(solutionPath);
+            foreach (var projectPath in projects)
+            {
+                var project = new Project(projectPath.FullPath);
+
+                var projectDirectory = project.DirectoryPath;
+
+                foreach (var resource in resources.Where(x=>x.Key.Project.Equals(projectPath.RelativeToSolution)))
+                {
+                    var resourceFile = Path.Combine(projectDirectory, resource.Key.File);
+                    if(!File.Exists(resourceFile))
+                    {
+                        throw new Exception($"File {resourceFile} does not exist");
+                    }
+
+                    // Edit xml
+                    //
+
+                    foreach (var value in resource.Values)
+                    {
+                        if (value.Key.Equals("default-culture"))
+                        {
+                            continue;
+                        }
+
+                        resourceFile = Path.Combine(projectDirectory, $"{resource.Key.File.Insert(resource.Key.File.LastIndexOf('.'), "." + value.Key)}");
+                        if (!File.Exists(resourceFile))
+                        {
+                            throw new Exception($"File {resourceFile} does not exist");
+                        }
+
+                        // Edit xml
+                        //
+                    }
+                }
+
+                ProjectCollection.GlobalProjectCollection.UnloadProject(project);
+            }
+
+
 
 
             Console.ReadKey();
+        }
+
+        private static List<ProjectPath> GetSolutionProjects(string solutionPath)
+        {
+            var solutionDirectory = Path.GetDirectoryName(solutionPath);
+            var solutionRegex = new Regex(@"\u0022([^\u0022]+\.csproj)\u0022");
+                //, RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            string solution;
+            using (var reader = new StreamReader(solutionPath))
+            {
+                solution = reader.ReadToEnd();
+            }
+
+            var projects = new List<ProjectPath>();
+            var matches = solutionRegex.Matches(solution);
+            foreach (Match match in matches)
+            {
+                var projectPath = match.Groups[1].Value;
+                projects.Add(new ProjectPath
+                {
+                    FullPath = Path.Combine(solutionDirectory, projectPath),
+                    RelativeToSolution = projectPath
+                });
+            }
+            return projects;
         }
 
         private static void ExportXlsx(List<ResourceItem> resourceList)
@@ -238,7 +292,7 @@ namespace ezResx
             return resources;
         }
 
-        private static IEnumerable<ResourceItem> MergeResources(List<ResourceItem> solutionResources, List<ResourceItem> xlsxResources)
+        private static List<ResourceItem> MergeResources(List<ResourceItem> solutionResources, List<ResourceItem> xlsxResources)
         {
             foreach (var solutionResource in solutionResources)
             {
@@ -312,5 +366,12 @@ namespace ezResx
 
         // TODO dictionary
         public IDictionary<string, string> Values { get; set; }
+    }
+
+    internal class ProjectPath
+    {
+        public string RelativeToSolution { get; set; }
+
+        public string FullPath { get; set; }
     }
 }
