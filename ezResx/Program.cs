@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClosedXML.Excel;
 using Microsoft.Build.Evaluation;
@@ -13,91 +14,131 @@ namespace ezResx
     {
         private static void Main(string[] args)
         {
-            var resourceList = new List<ResourceItem>();
+            //\u0022([^\u0022]*.csproj)\u0022
+            //var solutionRegex = new Regex(@"Project.*\""([^""]+\.csproj)\"",.*EndProject", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-            var project =
-                new Project(
-                    @"C:\src\tfs\P2P Mobile Wallet\MobilePayLoyalty\DB.Mobeco.MobilePay.Loyalty.Infrastructure\DB.Mobeco.MobilePay.Loyalty.Infrastructure.csproj");
-
-            var items = project.Items.Where(x => x.EvaluatedInclude.EndsWith(".resx"));
-
-            foreach (var item in items)
+            var solutionPath = @"C:\Users\Qwx\Source\Repos\MachoKey\MachoKey.sln";
+            var solutionDirectory = Path.GetDirectoryName(solutionPath);
+            var solutionRegex = new Regex(@"\u0022([^\u0022]+\.csproj)\u0022");//, RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            string solution;
+            using (var reader = new StreamReader(solutionPath))
             {
-                var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
-                var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
-                var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
-                if (locale!= "default-culture")
-                {
-                    continue;
-                }
-
-                var file = withoutExtension.Split('.').First();
-
-                foreach (var dataElement in XElement.Load(filePath).Elements("data"))
-                {
-                    var resourceKey = new ResourceKey
-                    {
-                        // TODO shorten path using solution path
-                        Project = project.FullPath,
-                        File = file,
-                        Name = dataElement.Attribute("name").Value
-                    };
-
-                    var resourceItem = new ResourceItem
-                    {
-                        Key = resourceKey,
-                        Values = new Dictionary<string, string>()
-                    };
-
-                    resourceItem.Values[locale] = dataElement.Element("value").Value;
+                solution = reader.ReadToEnd();
                 
-                    resourceList.Add(resourceItem);
-
-                }
-
             }
 
-
-            foreach (var item in items)
+            var projects = new List<string>();
+            var matches = solutionRegex.Matches(solution);
+            foreach (Match match in matches)
             {
-                var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
-                var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
-                var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
+                var projectPath = match.Groups[1].Value;
+                projects.Add(projectPath);
+            }
 
-                if (locale == "default-culture")
+            var resourceList = new List<ResourceItem>();
+            foreach (var projectPath in projects)
+            {
+                var project = new Project(Path.Combine(solutionDirectory, projectPath));
+                        //@"C:\src\tfs\P2P Mobile Wallet\MobilePayLoyalty\DB.Mobeco.MobilePay.Loyalty.Infrastructure\DB.Mobeco.MobilePay.Loyalty.Infrastructure.csproj");
+                        
+                var items = project.Items.Where(x => x.EvaluatedInclude.EndsWith(".resx"));
+
+                foreach (var item in items)
                 {
-                    continue;
-                }
-
-                var file = withoutExtension.Split('.').First();
-
-                foreach (var dataElement in XElement.Load(filePath).Elements("data"))
-                {
-                    var resourceKey = new ResourceKey
+                    var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
+                    var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
+                    var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
+                    if (locale != "default-culture")
                     {
-                        // TODO shorten path using solution path
-                        Project = project.FullPath,
-                        File = file,
-                        Name = dataElement.Attribute("name").Value
-                    };
-
-                    var resourceItem = resourceList.FirstOrDefault(x => Equals(x.Key, resourceKey));
-                    if (resourceItem == null)
-                    {
-                        Console.WriteLine(
-                            $"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
                         continue;
                     }
-                    
-                    resourceItem.Values[locale] = dataElement.Element("value").Value;
 
-                    Console.WriteLine("{0} = {1}", dataElement.Attribute("name").Value,
-                        dataElement.Element("value").Value);
+                    var file = withoutExtension.Split('.').First();
+
+                    foreach (var dataElement in XElement.Load(filePath).Elements("data"))
+                    {
+                        var resourceKey = new ResourceKey
+                        {
+                            Project = projectPath,
+                            // TODO file should retain path within project
+                            File = file,
+                            Name = dataElement.Attribute("name").Value
+                        };
+
+                        var resourceItem = new ResourceItem
+                        {
+                            Key = resourceKey,
+                            Values = new Dictionary<string, string>()
+                        };
+
+                        resourceItem.Values[locale] = dataElement.Element("value").Value;
+
+                        resourceList.Add(resourceItem);
+
+                    }
+
+                }
+
+
+                foreach (var item in items)
+                {
+                    var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
+                    var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
+                    var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
+
+                    if (locale == "default-culture")
+                    {
+                        continue;
+                    }
+
+                    var file = withoutExtension.Split('.').First();
+
+                    foreach (var dataElement in XElement.Load(filePath).Elements("data"))
+                    {
+                        var resourceKey = new ResourceKey
+                        {
+                            Project = projectPath,
+                            // TODO file should retain path within project
+                            File = file,
+                            Name = dataElement.Attribute("name").Value
+                        };
+
+                        var resourceItem = resourceList.FirstOrDefault(x => Equals(x.Key, resourceKey));
+                        if (resourceItem == null)
+                        {
+                            Console.WriteLine(
+                                $"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
+                            continue;
+                        }
+
+                        resourceItem.Values[locale] = dataElement.Element("value").Value;
+
+                        Console.WriteLine("{0} = {1}", dataElement.Attribute("name").Value,
+                            dataElement.Element("value").Value);
+                    }
                 }
             }
 
             // Export excel
 
+            ExportXlsx(resourceList);
+
+            // Read xlsx
+
+            var resources = ReadXlsx("Translations.xlsx");
+
+            // merge
+            var solutionResources = resourceList;
+            var xlsxResources = resources;
+
+            MergeResources(solutionResources, xlsxResources);
+
+
+            Console.ReadKey();
+        }
+
+        private static void ExportXlsx(List<ResourceItem> resourceList)
+        {
             var workBook = new XLWorkbook();
             var sheet = workBook.Worksheets.Add("Resources");
             var projectColumn = CreateColumn(sheet, "Project");
@@ -139,23 +180,24 @@ namespace ezResx
                 }
             }
 
-            //workBook.SaveAs("Translations.xlsx");
+            workBook.SaveAs("Translations.xlsx");
+        }
 
-            // Read xlsx
+        private static List<ResourceItem> ReadXlsx(string file)
+        {
+            var workBook = new XLWorkbook(file);
+            var sheet = workBook.Worksheet("Resources");
 
-            workBook = new XLWorkbook("Translations.xlsx");
-            sheet = workBook.Worksheet("Resources");
-
-            projectColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "Project").WorksheetColumn();
-            fileColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "File").WorksheetColumn();
-            nameColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "Name").WorksheetColumn();
+            var projectColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "Project").WorksheetColumn();
+            var fileColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "File").WorksheetColumn();
+            var nameColumn = sheet.FirstRow().Cells().FirstOrDefault(x => x.Value.ToString() == "Name").WorksheetColumn();
 
             var localeHeaders = new List<IXLCell>();
             var defaultHeader = sheet.FirstRow().Cells().First(x => x.Value.ToString() == "default-culture");
             localeHeaders.Add(defaultHeader);
             var rightCell = defaultHeader.CellRight();
-            string locale1;
-            while (rightCell.TryGetValue<string>(out locale1) && !string.IsNullOrWhiteSpace(locale1))
+            string locale;
+            while (rightCell.TryGetValue<string>(out locale) && !string.IsNullOrWhiteSpace(locale))
             {
                 localeHeaders.Add(rightCell);
                 rightCell = rightCell.CellRight();
@@ -169,24 +211,24 @@ namespace ezResx
                 {
                     firstRow = false;
                     continue;
-                } 
+                }
 
-                var project1 = row.Cell(projectColumn.ColumnNumber()).Value.ToString();
+                var project = row.Cell(projectColumn.ColumnNumber()).Value.ToString();
                 var file1 = row.Cell(fileColumn.ColumnNumber()).Value.ToString();
-                var name1 = row.Cell(nameColumn.ColumnNumber()).Value.ToString();
+                var name = row.Cell(nameColumn.ColumnNumber()).Value.ToString();
 
                 var resource = new ResourceItem()
                 {
-                    Key = new ResourceKey {Project = project1, File = file1, Name = name1},
+                    Key = new ResourceKey {Project = project, File = file1, Name = name},
                     Values = new Dictionary<string, string>()
                 };
 
-                
-                
+
                 foreach (var localeHeader in localeHeaders)
                 {
                     string value;
-                    if (row.Cell(localeHeader.WorksheetColumn().ColumnNumber()).TryGetValue(out value) && (!string.IsNullOrWhiteSpace(value) || localeHeader.Value.ToString() == "default-culture")) 
+                    if (row.Cell(localeHeader.WorksheetColumn().ColumnNumber()).TryGetValue(out value) &&
+                        (!string.IsNullOrWhiteSpace(value) || localeHeader.Value.ToString() == "default-culture"))
                     {
                         resource.Values[localeHeader.Value.ToString()] = value;
                     }
@@ -194,11 +236,11 @@ namespace ezResx
 
                 resources.Add(resource);
             }
+            return resources;
+        }
 
-            // merge
-            var solutionResources = resourceList;
-            var xlsxResources = resources;
-
+        private static IEnumerable<ResourceItem> MergeResources(List<ResourceItem> solutionResources, List<ResourceItem> xlsxResources)
+        {
             foreach (var solutionResource in solutionResources)
             {
                 var xlsxResource = xlsxResources.FirstOrDefault(x => x.Key.Equals(solutionResource.Key));
@@ -207,7 +249,6 @@ namespace ezResx
                     foreach (var value in xlsxResource.Values)
                     {
                         solutionResource.Values[value.Key] = value.Value;
-                        
                     }
 
                     xlsxResources.Remove(xlsxResource);
@@ -226,8 +267,7 @@ namespace ezResx
                 Console.ResetColor();
             }
 
-
-            Console.ReadKey();
+            return solutionResources;
         }
 
         private static IXLColumn CreateColumn(IXLWorksheet sheet, string name)
