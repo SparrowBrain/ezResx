@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Resources;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClosedXML.Excel;
@@ -14,6 +15,10 @@ namespace ezResx
     {
         private static void Main(string[] args)
         {
+            //var aa = new ResXResourceWriter();
+            //    aa.AddResource()
+
+
             //\u0022([^\u0022]*.csproj)\u0022
             //var solutionRegex = new Regex(@"Project.*\""([^""]+\.csproj)\"",.*EndProject", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -24,7 +29,7 @@ namespace ezResx
             foreach (var projectPath in projects)
             {
                 var project = new Project(projectPath.FullPath);
-                        
+
                 var items = project.Items.Where(x => x.EvaluatedInclude.EndsWith(".resx"));
 
                 foreach (var item in items)
@@ -121,40 +126,115 @@ namespace ezResx
 
             // Import xlsx
             projects = GetSolutionProjects(solutionPath);
-            foreach (var projectPath in projects)
+            var resourcesByProject = resources.GroupBy(x => x.Key.Project);
+            foreach (var projectGroup in resourcesByProject)
             {
+                var projectPath = projects.FirstOrDefault(x => x.RelativeToSolution.Equals(projectGroup.Key, StringComparison.InvariantCultureIgnoreCase));
+                if (projectPath == null)
+                {
+                    throw new Exception($"Project {projectGroup.Key} deos not exist in solution");
+                }
+
                 var project = new Project(projectPath.FullPath);
 
                 var projectDirectory = project.DirectoryPath;
 
-                foreach (var resource in resources.Where(x=>x.Key.Project.Equals(projectPath.RelativeToSolution)))
+
+
+                var resourcesByFile = projectGroup.ToList().GroupBy(x => x.Key.File);
+                foreach (var fileGroup in resourcesByFile)
                 {
-                    var resourceFile = Path.Combine(projectDirectory, resource.Key.File);
-                    if(!File.Exists(resourceFile))
+                    var defaultFilePath = Path.Combine(projectDirectory, fileGroup.Key);
+                    if (!File.Exists(defaultFilePath))
                     {
-                        throw new Exception($"File {resourceFile} does not exist");
+                        throw new Exception($"File {defaultFilePath} does not exist");
                     }
+
 
                     // Edit xml
                     //
 
-                    foreach (var value in resource.Values)
+                    var defaultFile = XElement.Load(defaultFilePath);
+                    var defaultElements = defaultFile.Elements("data").ToDictionary(x => x.Attribute("name")?.Value);
+
+                    foreach (var resource in fileGroup.ToList())
                     {
-                        if (value.Key.Equals("default-culture"))
+                        var element = defaultFile.Elements("data").FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
+                        if (element == null)
                         {
-                            continue;
+                            throw new Exception($"Name {resource.Key.Name} does not exist in {defaultFilePath}");
                         }
 
-                        resourceFile = Path.Combine(projectDirectory, $"{resource.Key.File.Insert(resource.Key.File.LastIndexOf('.'), "." + value.Key)}");
-                        if (!File.Exists(resourceFile))
+                        var valueElement = element.Element("value");
+                        if (valueElement == null)
                         {
-                            throw new Exception($"File {resourceFile} does not exist");
+                            throw new Exception(
+                                $"No value element exists for {resource.Key.Name} in {defaultFilePath}");
                         }
 
-                        // Edit xml
-                        //
+                        valueElement.Value = resource.Values["default-culture"];
+                    }
+
+                    defaultFile.Save(defaultFilePath);
+
+                    // locales
+
+                    var locales =
+                        fileGroup.ToList().SelectMany(x => x.Values.Keys.Where(y => y != "default-culture")).Distinct();
+                    foreach (var locale in locales)
+                    {
+                        var filePath = Path.Combine(projectDirectory,
+                            fileGroup.Key.Insert(fileGroup.Key.LastIndexOf('.'), "." + locale));
+
+                        // TODO create new locale files
+                        if (!File.Exists(filePath))
+                        {
+                            throw new Exception($"File {filePath} does not exist");
+                        }
+
+                        var resourceFile = XElement.Load(filePath);
+
+                        // TODO force blank value overwrite for non-default locales
+                        foreach (var resource in fileGroup.ToList().Where(x => x.Values.ContainsKey(locale)))
+                        {
+                            var element =
+                                resourceFile.Elements("data")
+                                    .FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
+                            if (element == null)
+                            {
+                                if (!defaultElements.ContainsKey(resource.Key.Name))
+                                {
+                                    throw new Exception(
+                                        $"Name {resource.Key.Name} does not exist in {defaultFilePath}");
+                                }
+                                var newElement = new XElement("data");
+                                newElement.SetAttributeValue("name", resource.Key.Name);
+                                newElement.SetAttributeValue(XNamespace.Xml + "space", "preserve");
+                                var valueElement = new XElement("value");
+                                valueElement.SetValue(resource.Values[locale]);
+                                newElement.Add(valueElement);
+                                resourceFile.Add(newElement);
+                            }
+                            else
+                            {
+                                var valueElement = element.Element("value");
+                                if (valueElement == null)
+                                {
+                                    throw new Exception(
+                                        $"No value element exists for {resource.Key.Name} in {defaultFilePath}");
+                                }
+
+                                valueElement.Value = resource.Values[locale];
+                            }
+                        }
+
+                        resourceFile.Save(filePath);
                     }
                 }
+
+
+
+
 
                 ProjectCollection.GlobalProjectCollection.UnloadProject(project);
             }
@@ -169,7 +249,6 @@ namespace ezResx
         {
             var solutionDirectory = Path.GetDirectoryName(solutionPath);
             var solutionRegex = new Regex(@"\u0022([^\u0022]+\.csproj)\u0022");
-                //, RegexOptions.Compiled | RegexOptions.CultureInvariant);
             string solution;
             using (var reader = new StreamReader(solutionPath))
             {
