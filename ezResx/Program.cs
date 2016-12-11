@@ -45,11 +45,22 @@ namespace ezResx
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
+                        if (dataElement.Attribute("type")?.Value == "System.Resources.ResXFileRef, System.Windows.Forms")
+                        {
+                            continue;
+                        }
+
+                        var nameAttribute = dataElement.Attribute("name");
+                        if (nameAttribute == null)
+                        {
+                            throw new Exception($"Data element does not contain name attribute in {filePath}");
+                        }
+
                         var resourceKey = new ResourceKey
                         {
                             Project = projectPath.RelativeToSolution,
                             File = file,
-                            Name = dataElement.Attribute("name").Value
+                            Name = nameAttribute.Value
                         };
 
                         var resourceItem = new ResourceItem
@@ -58,10 +69,17 @@ namespace ezResx
                             Values = new Dictionary<string, string>()
                         };
 
-                        resourceItem.Values[locale] = dataElement.Element("value").Value;
+                        var valueElement = dataElement.Element("value");
+                        if (valueElement == null)
+                        {
+                            throw new Exception($"Data element {nameAttribute.Value} does not have a value element in {filePath}");
+                        }
+
+                        resourceItem.Values[locale] = valueElement.Value;
 
                         resourceList.Add(resourceItem);
 
+                        Console.WriteLine("{0} = {1}", nameAttribute.Value, valueElement.Value);
                     }
 
                 }
@@ -83,25 +101,37 @@ namespace ezResx
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
+                        if (dataElement.Attribute("type")?.Value == "System.Resources.ResXFileRef, System.Windows.Forms")
+                        {
+                            continue;
+                        }
+
+                        var nameAttribute = dataElement.Attribute("name");
+                        if (nameAttribute == null)
+                        {
+                            throw new Exception($"Data element does not contain name attribute in {filePath}");
+                        }
+
                         var resourceKey = new ResourceKey
                         {
                             Project = projectPath.RelativeToSolution,
                             File = file,
-                            Name = dataElement.Attribute("name").Value
+                            Name = nameAttribute.Value
                         };
 
                         var resourceItem = resourceList.FirstOrDefault(x => Equals(x.Key, resourceKey));
                         if (resourceItem == null)
                         {
-                            Console.WriteLine(
-                                $"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
-                            continue;
+                            throw new Exception($"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
                         }
 
-                        resourceItem.Values[locale] = dataElement.Element("value").Value;
+                        var valueElement = dataElement.Element("value");
+                        if (valueElement == null)
+                        {
+                            throw new Exception($"Data element {nameAttribute.Value} does not have a value element in {filePath}");
+                        }
 
-                        Console.WriteLine("{0} = {1}", dataElement.Attribute("name").Value,
-                            dataElement.Element("value").Value);
+                        resourceItem.Values[locale] = valueElement.Value;
                     }
                 }
 
@@ -120,7 +150,7 @@ namespace ezResx
             var solutionResources = resourceList;
             var xlsxResources = resources;
 
-            //resources = MergeResources(solutionResources, xlsxResources);
+            resources = MergeResources(solutionResources, xlsxResources);
 
 
             // Import xlsx
@@ -181,8 +211,8 @@ namespace ezResx
                     var locales = fileGroup.ToList().SelectMany(x => x.Values.Keys.Where(y => y != "default-culture")).Distinct();
                     foreach (var locale in locales)
                     {
-                        var filePath = Path.Combine(projectDirectory,
-                            fileGroup.Key.Insert(fileGroup.Key.LastIndexOf('.'), "." + locale));
+                        var localeFilePath = fileGroup.Key.Insert(fileGroup.Key.LastIndexOf('.'), "." + locale);
+                        var filePath = Path.Combine(projectDirectory, localeFilePath);
 
                         // TODO create new locale files
                         if (!File.Exists(filePath))
@@ -206,6 +236,14 @@ namespace ezResx
                                     resxWriter.AddResource(resource.Key.Name, resource.Values[locale]);
                                 }
                                 resxWriter.Generate();
+                            }
+
+
+                            if (project.Items.All(x => x.UnevaluatedInclude != localeFilePath))
+                            {
+                                var metadata = new Dictionary<string, string> { { "SubType", "Designer" } };
+                                project.AddItem("EmbeddedResource", localeFilePath, metadata);
+                                project.Save();
                             }
                             continue;
                         }
@@ -266,6 +304,13 @@ namespace ezResx
                         }
 
                         resourceFile.Save(filePath);
+
+                        if (project.Items.All(x => x.UnevaluatedInclude != localeFilePath))
+                        {
+                            var metadata = new Dictionary<string, string> { { "SubType", "Designer" } };
+                            project.AddItem("EmbeddedResource", localeFilePath, metadata);
+                            project.Save();
+                        }
                     }
                 }
 
