@@ -7,7 +7,7 @@ namespace ezResx.Solution
 {
     internal abstract class SolutionService
     {
-        protected internal static List<ProjectPath> GetSolutionProjects(string solutionPath)
+        protected List<ProjectPath> GetSolutionProjects(string solutionPath)
         {
             var solutionDirectory = Path.GetDirectoryName(solutionPath);
             var solutionRegex = new Regex(@"\u0022([^\u0022]+\.csproj)\u0022");

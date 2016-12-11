@@ -81,6 +81,7 @@ namespace ezResx.Excel
             _fileColumn = CreateColumn(FileColumnName, _projectColumn);
             _nameColumn = CreateColumn(NameColumnName, _fileColumn);
             _defaultCultureColumn = CreateColumn(DefaultCultureColumn, _nameColumn);
+            
             CreateColumn("da", _defaultCultureColumn);
         }
 

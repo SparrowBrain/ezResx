@@ -9,11 +9,11 @@ using Microsoft.Build.Evaluation;
 
 namespace ezResx.Solution
 {
-    internal class SolutionReader
+    internal class SolutionReader : SolutionService
     {
         public List<ResourceItem> GetSolutionResources(string solutionPath)
         {
-            var projects = SolutionService.GetSolutionProjects(solutionPath);
+            var projects = GetSolutionProjects(solutionPath);
 
             var resourceList = new List<ResourceItem>();
             foreach (var projectPath in projects)

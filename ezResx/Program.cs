@@ -1,17 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Resources;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using ClosedXML.Excel;
-using ezResx.Data;
+using CommandLine;
+using ezResx.CommandLineData;
 using ezResx.Excel;
 using ezResx.Resource;
 using ezResx.Solution;
-using Microsoft.Build.Evaluation;
-
 
 namespace ezResx
 {
@@ -19,31 +11,67 @@ namespace ezResx
     {
         private static void Main(string[] args)
         {
-            var solutionPath = @"C:\Users\Qwx\Source\Repos\MachoKey\MachoKey.sln";
-            var translationsXlsx = "Translations.xlsx";
+            Parser.Default.ParseArguments<ExportOptions, ImportOptions, MergeOptions, FullOptions>(args)
+                .WithParsed<ExportOptions>(opts => Try(() => { Export(opts.Solution, opts.Excel); }))
+                .WithParsed<ImportOptions>(opts => Try(() => { Import(opts.Solution, opts.Excel); }))
+                .WithParsed<MergeOptions>(opts => Try(() => { Merge(opts.Solution, opts.Excel); }))
+                .WithParsed<FullOptions>(opts => Try(() =>
+                {
+                    Merge(opts.Solution, opts.Excel);
+                    Import(opts.Solution, opts.Excel);
+                }));
+        }
 
+        private static void Try(Action action)
+        {
+            try
+            {
+                action.Invoke();
+                Console.WriteLine("Done!");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex);
+                Console.ResetColor();
+            }
+        }
+        
+        private static void Export(string solutionPath, string translationsXlsx)
+        {
+            Console.WriteLine("Reading solution resources...");
             var resourceList = new SolutionReader().GetSolutionResources(solutionPath);
 
-            // Export excel
+            Console.WriteLine("Exporting to xlsx...");
             var excelWriter = new ExcelWriter();
             excelWriter.WriteXlsx(translationsXlsx, resourceList);
+        }
 
-            // Read xlsx
+        private static void Merge(string solutionPath, string translationsXlsx)
+        {
+            Console.WriteLine("Reading solution resources...");
+            var solutionResources = new SolutionReader().GetSolutionResources(solutionPath);
+
+            Console.WriteLine("Reading xlsx resources...");
+            var excelReader = ExcelReader.CreateReader(translationsXlsx);
+            var xlsxResources = excelReader.ReadXlsx();
+
+            Console.WriteLine("Merging resources...");
+            var resources = new ResourceMerger().MergeResources(solutionResources, xlsxResources);
+
+            Console.WriteLine("Writing resources to xlsx...");
+            var excelWriter = new ExcelWriter();
+            excelWriter.WriteXlsx(translationsXlsx, resources);
+        }
+
+        private static void Import(string solutionPath, string translationsXlsx)
+        {
+            Console.WriteLine("Reading xlsx resources...");
             var excelReader = ExcelReader.CreateReader(translationsXlsx);
             var resources = excelReader.ReadXlsx();
 
-            // merge
-            var solutionResources = resourceList;
-            var xlsxResources = resources;
-            
-            resources = new ResourceMerger().MergeResources(solutionResources, xlsxResources);
-
-
-            // Import xlsx
+            Console.WriteLine("Adding resources to solution...");
             new SolutionWriter().AddResourcesToSolution(solutionPath, resources);
-
-
-            Console.ReadKey();
         }
     }
 }

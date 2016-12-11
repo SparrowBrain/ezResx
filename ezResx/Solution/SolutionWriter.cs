@@ -5,6 +5,7 @@ using System.Linq;
 using System.Resources;
 using System.Xml.Linq;
 using ezResx.Data;
+using ezResx.Errors;
 using Microsoft.Build.Evaluation;
 
 namespace ezResx.Solution
@@ -50,7 +51,7 @@ namespace ezResx.Solution
                             defaultFile.Elements("data").FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
                         if (element == null)
                         {
-                            throw new Exception($"Name {resource.Key.Name} does not exist in {defaultFilePath}");
+                            throw new DataLossException($"Name {resource.Key.Name} does not exist in {defaultFilePath}");
                         }
 
                         var valueElement = element.Element("value");
@@ -87,8 +88,7 @@ namespace ezResx.Solution
 
                                     if (!defaultElements.ContainsKey(resource.Key.Name))
                                     {
-                                        throw new Exception(
-                                            $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
+                                        throw new Exception($"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
                                     }
 
                                     resxWriter.AddResource(resource.Key.Name, resource.Values[locale]);
@@ -107,7 +107,7 @@ namespace ezResx.Solution
                         {
                             if (!defaultElements.ContainsKey(resource.Key.Name))
                             {
-                                throw new Exception(
+                                throw new DataLossException(
                                     $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
                             }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ezResx.Data;
+using ezResx.Errors;
 
 namespace ezResx.Resource
 {
@@ -39,7 +40,7 @@ namespace ezResx.Resource
             }
                 
             Console.ResetColor();
-            throw new Exception("Potential data loss");
+            throw new DataLossException("Potential data loss");
         }
     }
 }
