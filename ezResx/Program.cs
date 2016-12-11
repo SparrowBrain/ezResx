@@ -15,9 +15,8 @@ namespace ezResx
     {
         private static void Main(string[] args)
         {
-            //var aa = new ResXResourceWriter();
-            //    aa.AddResource()
-
+            
+            
 
             //\u0022([^\u0022]*.csproj)\u0022
             //var solutionRegex = new Regex(@"Project.*\""([^""]+\.csproj)\"",.*EndProject", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -109,10 +108,10 @@ namespace ezResx
                 ProjectCollection.GlobalProjectCollection.UnloadProject(project);
             }
 
-            // Export excel
+            //// Export excel
 
-            ExportXlsx(resourceList);
-
+            //ExportXlsx(resourceList);
+            
             // Read xlsx
 
             var resources = ReadXlsx("Translations.xlsx");
@@ -121,7 +120,7 @@ namespace ezResx
             var solutionResources = resourceList;
             var xlsxResources = resources;
 
-            resources = MergeResources(solutionResources, xlsxResources);
+            //resources = MergeResources(solutionResources, xlsxResources);
 
 
             // Import xlsx
@@ -179,8 +178,7 @@ namespace ezResx
 
                     // locales
 
-                    var locales =
-                        fileGroup.ToList().SelectMany(x => x.Values.Keys.Where(y => y != "default-culture")).Distinct();
+                    var locales = fileGroup.ToList().SelectMany(x => x.Values.Keys.Where(y => y != "default-culture")).Distinct();
                     foreach (var locale in locales)
                     {
                         var filePath = Path.Combine(projectDirectory,
@@ -189,42 +187,81 @@ namespace ezResx
                         // TODO create new locale files
                         if (!File.Exists(filePath))
                         {
-                            throw new Exception($"File {filePath} does not exist");
+                            using (var resxWriter = new ResXResourceWriter(filePath))
+                            {
+                                foreach (var resource in fileGroup.ToList())
+                                {
+                                    string value;
+                                    if (!resource.Values.TryGetValue(locale, out value))
+                                    {
+                                        continue;
+                                    }
+
+                                    if (!defaultElements.ContainsKey(resource.Key.Name))
+                                    {
+                                        throw new Exception(
+                                            $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
+                                    }
+
+                                    resxWriter.AddResource(resource.Key.Name, resource.Values[locale]);
+                                }
+                                resxWriter.Generate();
+                            }
+                            continue;
                         }
 
                         var resourceFile = XElement.Load(filePath);
-
-                        // TODO force blank value overwrite for non-default locales
-                        foreach (var resource in fileGroup.ToList().Where(x => x.Values.ContainsKey(locale)))
+                        
+                        foreach (var resource in fileGroup.ToList())
                         {
+                            if (!defaultElements.ContainsKey(resource.Key.Name))
+                            {
+                                throw new Exception(
+                                    $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
+                            }
+
                             var element =
                                 resourceFile.Elements("data")
                                     .FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
-                            if (element == null)
+
+
+
+                            string value;
+                            if (resource.Values.TryGetValue(locale, out value))
                             {
-                                if (!defaultElements.ContainsKey(resource.Key.Name))
+                                // update
+                                if (element == null)
                                 {
-                                    throw new Exception(
-                                        $"Name {resource.Key.Name} does not exist in {defaultFilePath}");
+                                    var newElement = new XElement("data");
+                                    newElement.SetAttributeValue("name", resource.Key.Name);
+                                    newElement.SetAttributeValue(XNamespace.Xml + "space", "preserve");
+                                    var valueElement = new XElement("value");
+                                    valueElement.SetValue(resource.Values[locale]);
+                                    newElement.Add(valueElement);
+                                    resourceFile.Add(newElement);
                                 }
-                                var newElement = new XElement("data");
-                                newElement.SetAttributeValue("name", resource.Key.Name);
-                                newElement.SetAttributeValue(XNamespace.Xml + "space", "preserve");
-                                var valueElement = new XElement("value");
-                                valueElement.SetValue(resource.Values[locale]);
-                                newElement.Add(valueElement);
-                                resourceFile.Add(newElement);
+                                else
+                                {
+                                    var valueElement = element.Element("value");
+                                    if (valueElement == null)
+                                    {
+                                        throw new Exception(
+                                            $"No value element exists for {resource.Key.Name} in {filePath}");
+                                    }
+
+                                    valueElement.Value = resource.Values[locale];
+                                }
                             }
                             else
                             {
-                                var valueElement = element.Element("value");
-                                if (valueElement == null)
+                                //delete
+                                if (element == null)
                                 {
-                                    throw new Exception(
-                                        $"No value element exists for {resource.Key.Name} in {defaultFilePath}");
+                                    continue;
                                 }
 
-                                valueElement.Value = resource.Values[locale];
+                                Console.WriteLine($"Removing resource {resource.Key.Name} from {filePath}");
+                                element.Remove();
                             }
                         }
 
