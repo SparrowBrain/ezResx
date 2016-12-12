@@ -83,6 +83,9 @@ namespace ezResx.Excel
             _defaultCultureColumn = CreateColumn(DefaultCultureColumn, _nameColumn);
             
             CreateColumn("da", _defaultCultureColumn);
+
+            _projectColumn.Hide();
+            _fileColumn.Hide();
         }
 
         private IXLColumn CreateColumn(IXLWorksheet sheet, string name)
