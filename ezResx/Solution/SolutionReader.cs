@@ -57,7 +57,7 @@ namespace ezResx.Solution
                         var resourceItem = new ResourceItem
                         {
                             Key = resourceKey,
-                            Values = new Dictionary<string, string>()
+                            Values = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
                         };
 
                         var valueElement = dataElement.Element("value");

@@ -85,14 +85,14 @@ namespace ezResx.Excel
 
         private ResourceItem CreateResourceItem(IXLRow row)
         {
-            var project = row.Cell(ProjectColumn.ColumnNumber()).Value.ToString();
-            var file = row.Cell(FileColumn.ColumnNumber()).Value.ToString();
-            var name = row.Cell(NameColumn.ColumnNumber()).Value.ToString();
+            var project = row.Cell(ProjectColumn.ColumnNumber()).GetString();
+            var file = row.Cell(FileColumn.ColumnNumber()).GetString();
+            var name = row.Cell(NameColumn.ColumnNumber()).GetString();
 
             var resource = new ResourceItem
             {
                 Key = new ResourceKey {Project = project, File = file, Name = name},
-                Values = new Dictionary<string, string>()
+                Values = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
             };
             return resource;
         }
@@ -101,11 +101,10 @@ namespace ezResx.Excel
         {
             foreach (var localeHeader in localeHeaders)
             {
-                string value;
-                if (row.Cell(localeHeader.WorksheetColumn().ColumnNumber()).TryGetValue(out value) &&
-                    (!string.IsNullOrWhiteSpace(value) || localeHeader.Value.ToString() == DefaultCultureColumn))
+                string value = row.Cell(localeHeader.WorksheetColumn().ColumnNumber()).GetString();
+                if (!string.IsNullOrWhiteSpace(value) || localeHeader.GetString() == DefaultCultureColumn)
                 {
-                    resource.Values[localeHeader.Value.ToString()] = value;
+                    resource.Values[localeHeader.GetString()] = value;
                 }
             }
         }
