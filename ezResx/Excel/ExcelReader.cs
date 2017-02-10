@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using ezResx.Data;
 
@@ -60,6 +61,8 @@ namespace ezResx.Excel
                 resources.Add(resource);
             }
 
+            VerifyStringFormat(resources);
+
             return resources;
         }
 
@@ -118,6 +121,36 @@ namespace ezResx.Excel
                 throw new Exception(columnName + " column not found");
             }
             return projectColumn;
+        }
+        
+        private void VerifyStringFormat(List<ResourceItem> resources)
+        {
+            var exceptions = new List<Exception>();
+            
+            foreach (var resource in resources)
+            {
+                var regex = new Regex(@"\{\d+\}");
+                
+                var value = resource.Values.First().Value;
+                var stringFormatCount = regex.Matches(value).Count;
+                
+                foreach (var resourceValue in resource.Values)
+                {
+                    var count = regex.Matches(resourceValue.Value).Count;
+                    if (count != stringFormatCount)
+                    {
+                        exceptions.Add(
+                            new Exception(
+                                $"String format missmatch in {resource.Key.Project} {resource.Key.File} {resource.Key.Name}"));
+                    }
+                }
+
+            }
+
+            if (exceptions.Any())
+            {
+                throw new AggregateException("Possible string format missmatches!", exceptions);
+            }
         }
     }
 }

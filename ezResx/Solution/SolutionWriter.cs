@@ -6,7 +6,6 @@ using System.Resources;
 using System.Xml.Linq;
 using ezResx.Data;
 using ezResx.Errors;
-using Microsoft.Build.Evaluation;
 
 namespace ezResx.Solution
 {
@@ -160,15 +159,12 @@ namespace ezResx.Solution
                         InlcudeMissingFileIntoProject(project, localeFilePath);
                     }
                 }
-
-
-                ProjectCollection.GlobalProjectCollection.UnloadProject(project);
             }
         }
 
         private void InlcudeMissingFileIntoProject(Project project, string localeFilePath)
         {
-            if (project.Items.All(x => x.UnevaluatedInclude != localeFilePath))
+            if (project.Items.All(x => x.Include != localeFilePath))
             {
                 var metadata = new Dictionary<string, string> {{"SubType", "Designer"}};
                 project.AddItem("EmbeddedResource", localeFilePath, metadata);

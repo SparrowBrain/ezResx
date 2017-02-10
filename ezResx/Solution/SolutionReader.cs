@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ezResx.Data;
-using Microsoft.Build.Evaluation;
 
 namespace ezResx.Solution
 {
@@ -20,19 +19,19 @@ namespace ezResx.Solution
             {
                 var project = new Project(projectPath.FullPath);
 
-                var items = project.Items.Where(x => x.EvaluatedInclude.EndsWith(".resx"));
+                var items = project.Items.Where(x => x.Include.EndsWith(".resx"));
 
                 foreach (var item in items)
                 {
-                    var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
-                    var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
+                    var filePath = Path.Combine(project.DirectoryPath, item.Include);
+                    var withoutExtension = Path.GetFileNameWithoutExtension(item.Include);
                     var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
                     if (locale != "default-culture")
                     {
                         continue;
                     }
 
-                    var file = item.EvaluatedInclude;
+                    var file = item.Include;
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
@@ -78,8 +77,8 @@ namespace ezResx.Solution
 
                 foreach (var item in items)
                 {
-                    var filePath = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
-                    var withoutExtension = Path.GetFileNameWithoutExtension(item.EvaluatedInclude);
+                    var filePath = Path.Combine(project.DirectoryPath, item.Include);
+                    var withoutExtension = Path.GetFileNameWithoutExtension(item.Include);
                     var locale = withoutExtension.Contains('.') ? withoutExtension.Split('.').Last() : "default-culture";
 
                     if (locale == "default-culture")
@@ -87,7 +86,7 @@ namespace ezResx.Solution
                         continue;
                     }
 
-                    var match = Regex.Match(item.EvaluatedInclude, @"([^\.]+)\.[^\.]+\.resx");
+                    var match = Regex.Match(item.Include, @"([^\.]+)\.[^\.]+\.resx");
                     var file = match.Groups[1].Value + ".resx";
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
@@ -126,8 +125,6 @@ namespace ezResx.Solution
                         resourceItem.Values[locale] = valueElement.Value;
                     }
                 }
-
-                ProjectCollection.GlobalProjectCollection.UnloadProject(project);
             }
             return resourceList;
         }
