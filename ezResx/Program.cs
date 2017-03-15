@@ -42,7 +42,7 @@ namespace ezResx
             Console.WriteLine("Reading solution resources...");
             var resourceList = new SolutionReader().GetSolutionResources(solutionPath);
 
-            Console.WriteLine("Exporting to xlsx...");
+            Console.WriteLine("Exporting to xlsx file: {0}", translationsXlsx);
             var excelWriter = new ExcelWriter();
             excelWriter.WriteXlsx(translationsXlsx, resourceList);
         }
@@ -59,7 +59,7 @@ namespace ezResx
             Console.WriteLine("Merging resources...");
             var resources = new ResourceMerger().MergeResources(solutionResources, xlsxResources);
 
-            Console.WriteLine("Writing resources to xlsx...");
+            Console.WriteLine("Writing resources to file: {0}", translationsXlsx);
             var excelWriter = new ExcelWriter();
             excelWriter.WriteXlsx(translationsXlsx, resources);
         }
@@ -70,7 +70,7 @@ namespace ezResx
             var excelReader = ExcelReader.CreateReader(translationsXlsx);
             var resources = excelReader.ReadXlsx();
 
-            Console.WriteLine("Adding resources to solution...");
+            Console.WriteLine("Adding resources to solution: {0}", solutionPath);                       
             new SolutionWriter().AddResourcesToSolution(solutionPath, resources);
         }
     }

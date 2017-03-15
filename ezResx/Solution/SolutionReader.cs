@@ -69,8 +69,6 @@ namespace ezResx.Solution
                         resourceItem.Values[locale] = valueElement.Value;
 
                         resourceList.Add(resourceItem);
-
-                        Console.WriteLine("{0} = {1}", nameAttribute.Value, valueElement.Value);
                     }
                 }
 
