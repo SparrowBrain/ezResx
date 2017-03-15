@@ -90,8 +90,7 @@ namespace ezResx.Excel
             
             CreateColumn("da", _defaultCultureColumn);
 
-            _projectColumn.Hide();
-            _fileColumn.Hide();
+            _sheet.SheetView.FreezeRows(1);
         }
 
         private IXLColumn CreateColumn(IXLWorksheet sheet, string name)
