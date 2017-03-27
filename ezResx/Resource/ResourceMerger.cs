@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using ezResx.Data;
 using ezResx.Errors;
+using System;
 
 namespace ezResx.Resource
 {
@@ -32,15 +32,8 @@ namespace ezResx.Resource
                 return solutionResources;
             }
 
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Translations will be lost:");
-            foreach (var lostResource in xlsxRes)
-            {
-                Console.WriteLine($"{lostResource.Key.File} {lostResource.Key.Name}");
-            }
-                
-            Console.ResetColor();
-            throw new DataLossException("Potential data loss");
+            throw new DataLossException("Translations will be lost:", xlsxRes);
+          
         }
     }
 }

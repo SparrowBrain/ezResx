@@ -50,7 +50,7 @@ namespace ezResx.Solution
                             defaultFile.Elements("data").FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
                         if (element == null)
                         {
-                            throw new DataLossException($"Name {resource.Key.Name} does not exist in {defaultFilePath}");
+                            throw new DataLossException($"Name {resource.Key.Name} does not exist in {defaultFilePath}", resources);
                         }
 
                         var valueElement = element.Element("value");
@@ -107,7 +107,7 @@ namespace ezResx.Solution
                             if (!defaultElements.ContainsKey(resource.Key.Name))
                             {
                                 throw new DataLossException(
-                                    $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}");
+                                    $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}", resources);
                             }
 
                             var element =

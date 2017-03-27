@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using ezResx.Data;
+using ezResx.Errors;
 
 namespace ezResx.Excel
 {
@@ -126,6 +127,7 @@ namespace ezResx.Excel
         private void VerifyStringFormat(List<ResourceItem> resources)
         {
             var exceptions = new List<Exception>();
+            var lostData = new List<ResourceItem>();
             
             foreach (var resource in resources)
             {
@@ -139,17 +141,20 @@ namespace ezResx.Excel
                     var count = regex.Matches(resourceValue.Value).Count;
                     if (count != stringFormatCount)
                     {
+                        lostData.Add(resource);
                         exceptions.Add(
                             new Exception(
                                 $"String format missmatch in {resource.Key.Project} {resource.Key.File} {resource.Key.Name}"));
                     }
+                   
                 }
 
             }
 
-            if (exceptions.Any())
+            if (exceptions.Count > 0)
             {
-                throw new AggregateException("Possible string format missmatches!", exceptions);
+               
+                throw new DataLossException("Possible string format missmatches!", lostData);
             }
         }
     }
