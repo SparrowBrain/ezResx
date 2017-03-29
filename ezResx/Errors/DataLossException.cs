@@ -6,44 +6,34 @@ namespace ezResx.Errors
 {
     internal class DataLossException : Exception
     {
-        public List<ResourceItem> missingData { get; set; }
-        public DataLossException(List<ResourceItem> xlsxRes)
+        public List<ResourceItem> MissingData { get; set; }
+        public DataLossException(IEnumerable<ResourceItem> xlsxRes)
         {
-            missingData = new List<ResourceItem>();
+            MissingData = new List<ResourceItem>();
             foreach (var lostResource in xlsxRes)
             {
-                missingData.Add(lostResource);
+                MissingData.Add(lostResource);
             }
 
         }
 
-        public DataLossException(string message, List<ResourceItem> xlsxRes) : base(message)
+        public DataLossException(string message, IEnumerable<ResourceItem> xlsxRes) : base(message)
         {
-            missingData = new List<ResourceItem>();
+            MissingData = new List<ResourceItem>();
             foreach (var lostResource in xlsxRes)
             {
-                missingData.Add(lostResource);
+                MissingData.Add(lostResource);
             }
         }
 
-        public DataLossException(string message, List<ResourceItem> xlsxRes, Exception innerException) : base(message, innerException)
+        public DataLossException(string message, IEnumerable<ResourceItem> xlsxRes, Exception innerException) : base(message, innerException)
         {
-            missingData = new List<ResourceItem>();
+            MissingData = new List<ResourceItem>();
             foreach (var lostResource in xlsxRes)
             {
-                missingData.Add(lostResource);
+                MissingData.Add(lostResource);
             }
         } 
-
-        
-
-        //public void PrintMissingData(List<ResourceItem> missingData)
-        //{
-        //    foreach (var lostResource in missingData)
-        //    {
-        //        Console.WriteLine($"{ lostResource.Key.File} {lostResource.Key.Name }");
-        //    }
-        //}
     }
 
     internal class InvalidDataException : Exception

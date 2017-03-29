@@ -124,9 +124,8 @@ namespace ezResx.Excel
             return projectColumn;
         }
         
-        private void VerifyStringFormat(List<ResourceItem> resources)
+        private void VerifyStringFormat(IEnumerable<ResourceItem> resources)
         {
-            var exceptions = new List<Exception>();
             var lostData = new List<ResourceItem>();
             
             foreach (var resource in resources)
@@ -142,16 +141,13 @@ namespace ezResx.Excel
                     if (count != stringFormatCount)
                     {
                         lostData.Add(resource);
-                        exceptions.Add(
-                            new Exception(
-                                $"String format missmatch in {resource.Key.Project} {resource.Key.File} {resource.Key.Name}"));
                     }
                    
                 }
 
             }
 
-            if (exceptions.Count > 0)
+            if (lostData.Count > 0)
             {
                
                 throw new DataLossException("Possible string format missmatches!", lostData);

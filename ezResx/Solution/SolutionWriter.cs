@@ -31,7 +31,9 @@ namespace ezResx.Solution
                 var resourcesByFile = projectGroup.ToList().GroupBy(x => x.Key.File);
                 foreach (var fileGroup in resourcesByFile)
                 {
+                    var lostData = new List<ResourceItem>();
                     var defaultFilePath = Path.Combine(projectDirectory, fileGroup.Key);
+
                     if (!File.Exists(defaultFilePath))
                     {
                         throw new Exception($"File {defaultFilePath} does not exist");
@@ -43,6 +45,7 @@ namespace ezResx.Solution
 
                     var defaultFile = XElement.Load(defaultFilePath);
                     var defaultElements = defaultFile.Elements("data").ToDictionary(x => x.Attribute("name")?.Value);
+                    
 
                     foreach (var resource in fileGroup.ToList())
                     {
@@ -50,7 +53,8 @@ namespace ezResx.Solution
                             defaultFile.Elements("data").FirstOrDefault(x => x.Attribute("name")?.Value == resource.Key.Name);
                         if (element == null)
                         {
-                            throw new DataLossException($"Name {resource.Key.Name} does not exist in {defaultFilePath}", resources);
+                            lostData.Add(resource);
+                            continue;
                         }
 
                         var valueElement = element.Element("value");
@@ -106,8 +110,10 @@ namespace ezResx.Solution
                         {
                             if (!defaultElements.ContainsKey(resource.Key.Name))
                             {
-                                throw new DataLossException(
-                                    $"Name {resource.Key.Name} does not exist in {defaultFilePath}, but exists in {filePath}", resources);
+                                if (!lostData.Contains((resource)))
+                                {
+                                    lostData.Add(resource);
+                                }
                             }
 
                             var element =
@@ -152,6 +158,11 @@ namespace ezResx.Solution
                                 Console.WriteLine($"Removing resource {resource.Key.Name} from {filePath}");
                                 element.Remove();
                             }
+                        }
+
+                        if (lostData.Count > 0)
+                        {
+                            throw new DataLossException($"Name does not exist in {defaultFilePath}", lostData);
                         }
 
                         resourceFile.Save(filePath);

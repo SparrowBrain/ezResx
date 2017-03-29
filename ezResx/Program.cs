@@ -15,8 +15,6 @@ namespace ezResx
 
         private static void Main(string[] args)
         {
-
-            args = new string[] { "merge", "-e", "C:\\Users\\crawlfast\\Source\\Repos\\ezResx\\ezResx\\bin\\Debug\\nottranslate.xlsx", "-s", "C:\\Users\\crawlfast\\Documents\\visual studio 2015\\Projects\\ConsoleApplication1\\ConsoleApplication1.sln" };
             Parser.Default.ParseArguments<ExportOptions, ImportOptions, MergeOptions, FullOptions>(args)
                 .WithParsed<ExportOptions>(opts => Try(() => { Export(opts.Solution, opts.Excel); }))
                 .WithParsed<ImportOptions>(opts => Try(() => { Import(opts.Solution, opts.Excel); }))
@@ -40,7 +38,7 @@ namespace ezResx
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Potential data loss");
                 Console.WriteLine(except.Message);
-                foreach (var lostResource in except.missingData)
+                foreach (var lostResource in except.MissingData)
                 {
                     Console.WriteLine($"{lostResource.Key.Project} { lostResource.Key.File} {lostResource.Key.Name }");
                 }
@@ -50,6 +48,7 @@ namespace ezResx
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
                 Console.ResetColor();
             }
            
