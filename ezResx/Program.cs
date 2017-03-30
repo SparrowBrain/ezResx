@@ -48,7 +48,6 @@ namespace ezResx
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
                 Console.ResetColor();
             }
            
