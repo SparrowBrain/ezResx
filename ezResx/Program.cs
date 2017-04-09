@@ -6,7 +6,6 @@ using ezResx.Resource;
 using ezResx.Solution;
 using System.IO;
 using ezResx.Errors;
-using ezResx.Data;
 
 namespace ezResx
 {
