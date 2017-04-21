@@ -158,7 +158,7 @@ namespace ezResx.Solution
                             }
                         }
 
-                        if (lostData.Count > 0)
+                        if (lostData.Any())
                         {
                             throw new DataLossException($"Name does not exist in {defaultFilePath}", lostData);
                         }
