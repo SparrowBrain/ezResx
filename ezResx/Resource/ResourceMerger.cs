@@ -32,8 +32,7 @@ namespace ezResx.Resource
                 return solutionResources;
             }
 
-            throw new DataLossException("Translations will be lost:", xlsxRes);
-          
+            throw new DataLossException("Translations will be lost.", xlsxRes);
         }
     }
 }

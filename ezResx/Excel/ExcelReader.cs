@@ -138,16 +138,14 @@ namespace ezResx.Excel
                 foreach (var resourceValue in resource.Values)
                 {
                     var count = regex.Matches(resourceValue.Value).Count;
-                    if (count != stringFormatCount)
+                    if (count != stringFormatCount && !lostData.Contains(resource))
                     {
                         lostData.Add(resource);
                     }
-                   
                 }
-
             }
 
-            if (lostData.Count > 0)
+            if (lostData.Any())
             {
                
                 throw new DataLossException("Possible string format missmatches!", lostData);

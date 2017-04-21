@@ -33,7 +33,6 @@ namespace ezResx.Solution
                 {
                     var lostData = new List<ResourceItem>();
                     var defaultFilePath = Path.Combine(projectDirectory, fileGroup.Key);
-
                     if (!File.Exists(defaultFilePath))
                     {
                         throw new Exception($"File {defaultFilePath} does not exist");
@@ -45,7 +44,6 @@ namespace ezResx.Solution
 
                     var defaultFile = XElement.Load(defaultFilePath);
                     var defaultElements = defaultFile.Elements("data").ToDictionary(x => x.Attribute("name")?.Value);
-                    
 
                     foreach (var resource in fileGroup.ToList())
                     {

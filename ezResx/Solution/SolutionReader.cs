@@ -89,7 +89,6 @@ namespace ezResx.Solution
 
                     foreach (var dataElement in XElement.Load(filePath).Elements("data"))
                     {
-
                         if (dataElement.Attribute("type")?.Value == "System.Resources.ResXFileRef, System.Windows.Forms")
                         {
                             continue;
@@ -111,7 +110,7 @@ namespace ezResx.Solution
                         var resourceItem = resourceList.FirstOrDefault(x => Equals(x.Key, resourceKey));
                         if (resourceItem == null)
                         {
-                            throw new Exception ($"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
+                            throw new Exception($"No invariant culture resource found for {resourceKey.File} {resourceKey.Name}");
                         }
 
                         var valueElement = dataElement.Element("value");

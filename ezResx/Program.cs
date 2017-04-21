@@ -11,7 +11,6 @@ namespace ezResx
 {
     internal class Program
     {
-
         private static void Main(string[] args)
         {
             Parser.Default.ParseArguments<ExportOptions, ImportOptions, MergeOptions, FullOptions>(args)
@@ -45,11 +44,10 @@ namespace ezResx
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine(ex.Message);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex);
                 Console.ResetColor();
             }
-           
         }
         
         private static void Export(string solutionPath, string translationsXlsx)
