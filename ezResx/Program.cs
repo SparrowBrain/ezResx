@@ -5,6 +5,7 @@ using ezResx.Excel;
 using ezResx.Resource;
 using ezResx.Solution;
 using System.IO;
+using ezResx.Errors;
 
 namespace ezResx
 {
@@ -29,6 +30,17 @@ namespace ezResx
             {
                 action.Invoke();
                 Console.WriteLine("Done!");
+            }
+            catch (DataLossException except)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Potential data loss");
+                Console.WriteLine(except.Message);
+                foreach (var lostResource in except.MissingData)
+                {
+                    Console.WriteLine($"{lostResource.Key.Project} { lostResource.Key.File} {lostResource.Key.Name }");
+                }
+                Console.ResetColor();
             }
             catch (Exception ex)
             {
