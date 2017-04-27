@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ClosedXML.Excel;
+using ezResx.AppSettings;
 using ezResx.Data;
 
 namespace ezResx.Excel
@@ -14,6 +15,7 @@ namespace ezResx.Excel
         private IXLColumn _fileColumn;
         private IXLColumn _nameColumn;
         private IXLColumn _defaultCultureColumn;
+        private IXLColumn _localeColumn;
 
         public ExcelWriter()
         {
@@ -87,8 +89,14 @@ namespace ezResx.Excel
             _fileColumn = CreateColumn(FileColumnName, _projectColumn);
             _nameColumn = CreateColumn(NameColumnName, _fileColumn);
             _defaultCultureColumn = CreateColumn(DefaultCultureColumn, _nameColumn);
-            
-            CreateColumn("da", _defaultCultureColumn);
+
+            var localeConfiguration = new Settings();
+            var settings = localeConfiguration.ReadAppSettings();
+            _localeColumn = _defaultCultureColumn;
+            foreach (var localeName in settings)
+            {
+                _localeColumn = CreateColumn(localeName, _localeColumn);
+            }
 
             _sheet.SheetView.FreezeRows(1);
         }
