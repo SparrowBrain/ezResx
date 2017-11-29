@@ -95,7 +95,7 @@ namespace ezResx.Excel
 
             var resource = new ResourceItem
             {
-                Key = new ResourceKey {Project = project, File = file, Name = name},
+                Key = new ResourceKey { Project = project, File = file, Name = name },
                 Values = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
             };
             return resource;
@@ -123,21 +123,20 @@ namespace ezResx.Excel
             }
             return projectColumn;
         }
-        
+
         private void VerifyStringFormat(IEnumerable<ResourceItem> resources)
         {
             var lostData = new List<ResourceItem>();
-            
+
             foreach (var resource in resources)
             {
                 var regex = new Regex(@"\{\d+\}");
-                
                 var value = resource.Values.First().Value;
-                var stringFormatCount = regex.Matches(value).Count;
-                
+                var stringFormatCount = CountUniqueMatches(regex, value);
+
                 foreach (var resourceValue in resource.Values)
                 {
-                    var count = regex.Matches(resourceValue.Value).Count;
+                    var count = CountUniqueMatches(regex, resourceValue.Value);
                     if (count != stringFormatCount && !lostData.Contains(resource))
                     {
                         lostData.Add(resource);
@@ -147,9 +146,19 @@ namespace ezResx.Excel
 
             if (lostData.Any())
             {
-               
                 throw new DataLossException("Possible string format missmatches!", lostData);
             }
+        }
+
+        private int CountUniqueMatches(Regex regex, string value)
+        {
+            var uniqueMatches = new HashSet<string>();
+            foreach (Match match in regex.Matches(value))
+            {
+                uniqueMatches.Add(match.Value);
+            }
+
+            return uniqueMatches.Count;
         }
     }
 }
